@@ -66,8 +66,7 @@ def scan_images_in_directory(directory, checkpoint_file):
             result = future.result()
             data.append(result)
             # Save progress to checkpoint file periodically
-            if len(data) % 100 == 0:
-                pd.DataFrame(data).to_csv(checkpoint_file, index=False)
+            pd.DataFrame(data).to_csv(checkpoint_file, index=False)
     
     df = pd.DataFrame(data)
     return df
