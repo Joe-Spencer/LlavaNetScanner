@@ -1,6 +1,5 @@
 import os
 import pandas as pd
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from image_describer import generate_description
 from design_describer import describe_design
 from pdf_describer import describe_pdf
@@ -31,7 +30,7 @@ def process_file(file_path, directory):
     contractor = path_parts[0] if len(path_parts) >= 2 else 'unknown'
     project = path_parts[1] if len(path_parts) >= 3 else 'unknown'
     if is_image_file(file_path):
-        description = generate_description(file_path)
+        description = generate_description(file_path, mode='detailed')
     elif is_design_file(file_path):
         description = describe_design(file_path)
     elif is_pdf_file(file_path):
