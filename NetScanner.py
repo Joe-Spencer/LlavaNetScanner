@@ -68,7 +68,7 @@ def scan_files_in_directory(directory, checkpoint_file):
     return df
 
 if __name__ == "__main__":
-    directory_to_scan = r'Z:\Project Management\Residential Contractors'
+    directory_to_scan = r"Examples"
     output_csv_file = r'ouput.csv' 
     checkpoint_file = r'checkpoint.csv'
     df = scan_files_in_directory(directory_to_scan, checkpoint_file)
