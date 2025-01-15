@@ -1,8 +1,12 @@
 import os
 import pandas as pd
+from datetime import datetime
 from image_describer import generate_description
 from design_describer import describe_design
 from pdf_describer import describe_pdf
+
+# Add constant for cutoff date
+CUTOFF_DATE = datetime(2024, 12, 1)
 
 #Check for image files
 def is_image_file(filename):
@@ -58,7 +62,7 @@ def scan_files_in_directory(directory, checkpoint_file):
     for root, _, files in os.walk(directory):
         for filename in files:
             file_path = os.path.join(root, filename)
-            if is_valid_file(filename) and file_path not in processed_files:
+            if is_valid_file(filename) and file_path not in processed_files and os.path.getctime(file_path) < CUTOFF_DATE.timestamp():
                 result = process_file(file_path, directory)
                 data.append(result)
                 # Save progress to checkpoint file
@@ -68,7 +72,7 @@ def scan_files_in_directory(directory, checkpoint_file):
     return df
 
 if __name__ == "__main__":
-    directory_to_scan = r"Examples"
+    directory_to_scan = r"examples"
     output_csv_file = r'ouput.csv' 
     checkpoint_file = r'checkpoint.csv'
     df = scan_files_in_directory(directory_to_scan, checkpoint_file)
