@@ -6,11 +6,31 @@ import numpy as np
 def convert_size(size_bytes):
     return size_bytes / (1024 ** 3)  # Convert to GB
 
+def get_file_category(ext):
+    categories = {
+        'Images(.jpg, .png, etc.)': ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.heic', '.raw', '.svg'],
+        'Videos(.mp4, .mov, etc.)': ['.mp4', '.mov', '.avi', '.wmv', '.flv', '.mkv', '.m4v', '.mpg', '.mpeg', '.3gp'],
+        'PDFs': ['.pdf'],
+        'Audio(.mp3, .wav, etc.)': ['.mp3', '.wav', '.wma', '.aac', '.flac', '.ogg', '.m4a'],
+        'Text(.txt)': ['.txt'],
+        'Documents(.doc, .xls, etc.)': ['.doc', '.docx', '.rtf', '.odt', '.xls', '.xlsx', '.ppt', '.pptx'],
+        'Archives(.zip, .rar, etc.)': ['.zip', '.rar', '.7z', '.tar', '.gz', '.bz2'],
+        'CAD(.dwg, .dxf, etc.)': ['.dwg', '.dxf', '.dwf', '.rvt', '.rfa', '.ifc'],
+        'Code': ['.py', '.js', '.html', '.css', '.cpp', '.h', '.java', '.php'],
+        'Database': ['.db', '.sqlite', '.mdb', '.accdb'],
+        'System': ['.sys', '.dll', '.exe', '.ini', '.config']
+    }
+    
+    for category, extensions in categories.items():
+        if ext.lower() in extensions:
+            return category
+    return 'other'
+
 def analyze_directory(directory_path):
     # Get directory name from path
     dir_name = os.path.basename(os.path.normpath(directory_path))
     
-    ext_sizes = defaultdict(int)
+    category_sizes = defaultdict(int)
     total_size = 0
     large_no_ext_files = []  # Track large files without extensions
     
@@ -21,9 +41,12 @@ def analyze_directory(directory_path):
                 size = os.path.getsize(file_path)
                 if file.startswith('.'):
                     ext = file
+                    category = 'system'
                 else:
                     ext = os.path.splitext(file)[1].lower() or 'no extension'
-                ext_sizes[ext] += size
+                    category = get_file_category(ext)
+                
+                category_sizes[category] += size
                 total_size += size
                 
                 # Track files >1GB without extension
@@ -44,20 +67,20 @@ def analyze_directory(directory_path):
     other_gb = 0
     
     # First pass to calculate total "other" size
-    for ext, size in ext_sizes.items():
+    for category, size in category_sizes.items():
         percentage = (size / total_size) * 100
         if percentage < threshold:
             other_size += percentage
             other_gb += size
         else:
             size_gb = convert_size(size)
-            percentages[ext] = (percentage, size_gb)
+            percentages[category] = (percentage, size_gb)
     
     # Sort by percentage and create labels
-    for ext, (percentage, size_gb) in sorted(percentages.items(), 
+    for category, (percentage, size_gb) in sorted(percentages.items(), 
                                            key=lambda x: x[1][0], 
                                            reverse=True):
-        labels.append(f'{ext} ({percentage:.1f}%, {size_gb:.2f} GB)')
+        labels.append(f'{category} ({percentage:.1f}%, {size_gb:.2f} GB)')
         sizes.append(percentage)
     
     # Add other category at the end
@@ -113,10 +136,10 @@ def analyze_directory(directory_path):
     
     print(f"\nTotal size: {total_gb:.2f} GB")
     print("\nFile type distribution:")
-    for ext, size in ext_sizes.items():
+    for category, size in category_sizes.items():
         size_gb = convert_size(size)
         percentage = (size / total_size) * 100
-        print(f"{ext}: {percentage:.1f}% ({size_gb:.2f} GB)")
+        print(f"{category}: {percentage:.1f}% ({size_gb:.2f} GB)")
     
     # Print warning about large files without extensions
     if large_no_ext_files:
