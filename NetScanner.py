@@ -4,9 +4,10 @@ from datetime import datetime
 from image_describer import generate_description
 from design_describer import describe_design
 from pdf_describer import describe_pdf
+from dotenv import load_dotenv
 
 # Add constant for cutoff date
-CUTOFF_DATE = datetime(2024, 12, 1)
+CUTOFF_DATE = datetime(2023, 10, 1)
 
 #Check for image files
 def is_image_file(filename):
@@ -21,6 +22,11 @@ def is_design_file(filename):
 #Check for PDFs
 def is_pdf_file(filename):
     return filename.lower().endswith('.pdf')
+
+#Check for text files
+def is_text_file(filename):
+    text_extensions = ('.txt', '.doc', '.docx')
+    return filename.lower().endswith(text_extensions)
 
 #Check if the file is one of the valid file types
 def is_valid_file(filename):
@@ -39,6 +45,8 @@ def process_file(file_path, directory):
         description = describe_design(file_path)
     elif is_pdf_file(file_path):
         description = describe_pdf(file_path)
+    # elif is_text_file(file_path):
+    #     description = ' '.join(open(file_path).readlines())
     else:
         description = 'what is this?'
     return {
@@ -62,8 +70,11 @@ def scan_files_in_directory(directory, checkpoint_file):
     for root, _, files in os.walk(directory):
         for filename in files:
             file_path = os.path.join(root, filename)
-            if is_valid_file(filename) and file_path not in processed_files and os.path.getctime(file_path) < CUTOFF_DATE.timestamp():
+            print(f"Found file: {file_path}")
+            if is_valid_file(filename) and file_path not in processed_files and os.path.getctime(file_path) > CUTOFF_DATE.timestamp():
+                print(f"Processing file: {filename}")
                 result = process_file(file_path, directory)
+                print(result)
                 data.append(result)
                 # Save progress to checkpoint file
                 pd.DataFrame(data).to_csv(checkpoint_file, index=False)
@@ -72,7 +83,7 @@ def scan_files_in_directory(directory, checkpoint_file):
     return df
 
 if __name__ == "__main__":
-    directory_to_scan = r"examples"
+    directory_to_scan = r"your file path"
     output_csv_file = r'ouput.csv' 
     checkpoint_file = r'checkpoint.csv'
     df = scan_files_in_directory(directory_to_scan, checkpoint_file)
