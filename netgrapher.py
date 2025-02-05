@@ -3,10 +3,29 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 import numpy as np
 
+category_colors = {
+    'Images(.jpg, .png, etc.)': '#FF6B6B',
+    'Videos(.mp4, .mov, etc.)': '#4ECDC4',
+    'PDFs': '#45B7D1',
+    'Audio(.mp3, .wav, etc.)': '#96CEB4',
+    'Text(.txt)': '#FFBE0B',
+    'Documents(.doc, .xls, etc.)': '#3D84A8',
+    'Archives(.zip, .rar, etc.)': '#E76F51',
+    'CAD(.dwg, .dxf, etc.)': '#9B5DE5',
+    'Code': '#00B4D8',
+    'Database': '#2A9D8F',
+    'System': '#6C757D',
+    'Outlook Backups': '#2EC4B6',
+    'Photo Database': '#FF9F1C',
+    'No Extension': '#C0C0C0'
+}
+
 def convert_size(size_bytes):
     return size_bytes / (1024 ** 3)  # Convert to GB
 
-def get_file_category(ext):
+def get_file_category(ext, filename):  # Add filename parameter
+    # Check for Outlook files first
+        
     categories = {
         'Images(.jpg, .png, etc.)': ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.heic', '.raw', '.svg'],
         'Videos(.mp4, .mov, etc.)': ['.mp4', '.mov', '.avi', '.wmv', '.flv', '.mkv', '.m4v', '.mpg', '.mpeg', '.3gp'],
@@ -24,7 +43,17 @@ def get_file_category(ext):
     for category, extensions in categories.items():
         if ext.lower() in extensions:
             return category
-    return 'other'
+    if 'outlook' in filename.lower():
+        return 'Outlook Backups'
+    if 'database' in filename.lower():
+        return 'Database'
+    if 'readme' in filename.lower() or 'license' in filename.lower():
+        return 'Text(.txt)'
+    if 'docker' in filename.lower():
+        return 'Code'
+    if filename.lower().startswith('.'):
+        return filename
+    return 'No Extension'
 
 def analyze_directory(directory_path):
     # Get directory name from path
@@ -44,14 +73,16 @@ def analyze_directory(directory_path):
                     category = 'system'
                 else:
                     ext = os.path.splitext(file)[1].lower() or 'no extension'
-                    category = get_file_category(ext)
+                    category = get_file_category(ext, file)  # Pass filename
                 
                 category_sizes[category] += size
                 total_size += size
                 
-                # Track files >1GB without extension
-                if ext == 'no extension' and size > (1024 ** 3):
-                    large_no_ext_files.append((file_path, convert_size(size)))
+                # Track files >0.125GB without extension
+                if ext == 'no extension':
+                    print(file_path)
+                    if size > ((1024 ** 3)*0.125):
+                        large_no_ext_files.append((file_path, convert_size(size)))
                     
             except (OSError, FileNotFoundError):
                 continue
@@ -64,7 +95,7 @@ def analyze_directory(directory_path):
     # Create labels with both percentage and GB
     labels = []
     sizes = []
-    other_gb = 0
+    other_gb = 0.5
     
     # First pass to calculate total "other" size
     for category, size in category_sizes.items():
@@ -86,7 +117,7 @@ def analyze_directory(directory_path):
     # Add other category at the end
     if other_size > 0:
         other_gb = convert_size(other_gb)
-        labels.append(f'other, <1%({other_size:.1f}%, {other_gb:.2f} GB)')
+        labels.append(f'other: ({other_size:.1f}%, {other_gb:.2f} GB)')
         sizes.append(other_size)
     
     # Sort sizes in descending order for better visualization
@@ -104,6 +135,10 @@ def analyze_directory(directory_path):
         else:
             label_texts.append(label)
 
+    def get_category_from_label(label):
+        # Extract the base category name before the percentage
+        return label.split(' (')[0]
+
     # Create pie chart with enhanced styling
     patches, texts, autotexts = plt.pie(sizes, 
                                        labels=label_texts,  # Use modified labels
@@ -112,7 +147,7 @@ def analyze_directory(directory_path):
                                        pctdistance=0.85,
                                        explode=[0.05] * len(sizes),
                                        shadow=True,
-                                       colors=plt.cm.Pastel1(np.linspace(0, 1, len(sizes))))
+                                       colors=[category_colors.get(get_category_from_label(label), '#C0C0C0') for label in labels])
     
     # Enhance the appearance of labels
     plt.setp(autotexts, size=8, weight="bold")
