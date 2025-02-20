@@ -35,56 +35,115 @@ def is_valid_file(filename):
 
 #Process the file and return the row of data
 def process_file(file_path, directory):
-    relative_path = os.path.relpath(file_path, directory)
-    path_parts = relative_path.split(os.sep)
-    contractor = path_parts[0] if len(path_parts) >= 2 else 'unknown'
-    project = path_parts[1] if len(path_parts) >= 3 else 'unknown'
-    if is_image_file(file_path):
-        description = generate_description(file_path, mode='detailed')
-    elif is_design_file(file_path):
-        description = describe_design(file_path)
-    elif is_pdf_file(file_path):
-        description = describe_pdf(file_path)
-    # elif is_text_file(file_path):
-    #     description = ' '.join(open(file_path).readlines())
-    else:
-        description = 'what is this?'
-    return {
-        'Filename': os.path.basename(file_path),
-        'Path': file_path,
-        'Contractor': contractor,
-        'Project': project,
-        'Description': description
-    }
+    """Process a file and return its metadata and description"""
+    try:
+        relative_path = os.path.relpath(file_path, directory)
+        path_parts = relative_path.split(os.sep)
+        contractor = path_parts[0] if len(path_parts) >= 2 else 'unknown'
+        project = path_parts[1] if len(path_parts) >= 3 else 'unknown'
+        
+        # Get the actual filename from the path
+        filename = os.path.basename(file_path)
+        
+        # Get file description based on type
+        description = ''
+        if is_image_file(filename):
+            description = generate_description(file_path, mode='detailed')
+        elif is_design_file(filename):
+            description = describe_design(file_path)
+        elif is_pdf_file(filename):
+            description = describe_pdf(file_path)
+        else:
+            description = 'Unknown file type'
+            
+        # Create result dictionary
+        result = {
+            'Filename': filename,
+            'Path': file_path,
+            'Contractor': contractor,
+            'Project': project,
+            'Description': description,
+            'file_type': os.path.splitext(filename)[1].lower()
+        }
+        
+        return result
+        
+    except Exception as e:
+        print(f"Error in process_file: {str(e)}")
+        # Return a basic result with error message
+        return {
+            'Filename': os.path.basename(file_path),
+            'Path': file_path,
+            'Contractor': 'unknown',
+            'Project': 'unknown',
+            'Description': f'Error processing file: {str(e)}',
+            'file_type': os.path.splitext(file_path)[1].lower()
+        }
 
-def scan_files_in_directory(directory, checkpoint_file):
-    # Load existing data if checkpoint file exists
-    if os.path.exists(checkpoint_file):
-        df = pd.read_csv(checkpoint_file)
-        processed_files = set(df['Path'].tolist())
-        print(f"Resuming from {checkpoint_file}")
-    else:
-        df = pd.DataFrame(columns=['Filename', 'Path', 'Contractor', 'Project', 'Description'])
-        processed_files = set()
-    data = df.to_dict('records')
-    for root, _, files in os.walk(directory):
-        for filename in files:
-            file_path = os.path.join(root, filename)
-            print(f"Found file: {file_path}")
-            if is_valid_file(filename) and file_path not in processed_files and os.path.getctime(file_path) > CUTOFF_DATE.timestamp():
-                print(f"Processing file: {filename}")
-                result = process_file(file_path, directory)
-                print(result)
-                data.append(result)
-                # Save progress to checkpoint file
-                pd.DataFrame(data).to_csv(checkpoint_file, index=False)
+def scan_files_in_directory(directory_path, db):
+    """
+    Scan files in directory and add them directly to database
+    """
+    data = []
+    files_found = 0
+    files_processed = 0
+    files_skipped = 0
     
-    df = pd.DataFrame(data)
-    return df
+    print("\nStarting directory scan...")
+    
+    # Convert to absolute path to avoid any path resolution issues
+    directory_path = os.path.abspath(directory_path)
+    processed_paths = set()
+    
+    for root, _, files in os.walk(directory_path):
+        for filename in files:
+            file_path = os.path.abspath(os.path.join(root, filename))
+            
+            if file_path in processed_paths:
+                continue
+                
+            files_found += 1
+            print(f"\nFound file ({files_found}): {filename}")
+            print(f"Full path: {file_path}")
+            
+            # Check if file is valid and newer than cutoff date
+            if (is_valid_file(filename) and 
+                os.path.getctime(file_path) > CUTOFF_DATE.timestamp()):
+                
+                # Check if file already exists in database
+                existing_results = db.get_results({'file_path': file_path})
+                if existing_results:
+                    files_skipped += 1
+                    print(f"⏭️  Skipping existing file: {filename}")
+                    processed_paths.add(file_path)
+                    continue
+                
+                print(f"🔍 Processing: {filename}")
+                try:
+                    result = process_file(file_path, directory_path)
+                    db.add_scan_result(result)
+                    files_processed += 1
+                    print(f"✅ Added to database: {result['Filename']}")
+                    processed_paths.add(file_path)
+                    data.append(result)
+                except Exception as e:
+                    print(f"❌ Error processing {filename}: {str(e)}")
+                    files_skipped += 1
+                    processed_paths.add(file_path)
+            else:
+                files_skipped += 1
+                print(f"⏭️  Skipping invalid or old file: {filename}")
+                processed_paths.add(file_path)
+    
+    print(f"\nScan Complete!")
+    print(f"Files found: {files_found}")
+    print(f"Files processed: {files_processed}")
+    print(f"Files skipped: {files_skipped}")
+    
+    return data
 
 if __name__ == "__main__":
     directory_to_scan = r"your file path"
-    output_csv_file = r'ouput.csv' 
-    checkpoint_file = r'checkpoint.csv'
-    df = scan_files_in_directory(directory_to_scan, checkpoint_file)
+    output_csv_file = r'ouput.csv'
+    df = pd.DataFrame(scan_files_in_directory(directory_to_scan))
     df.to_csv(output_csv_file, index=False)
