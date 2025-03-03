@@ -163,3 +163,5 @@ cython_debug/
 
 *.csv
 scanner_results.db
+
+page.png
