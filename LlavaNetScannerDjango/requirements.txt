@@ -1,0 +1,7 @@
+django>=5.1.0
+pandas>=1.5.3
+plotly>=5.13.1
+matplotlib>=3.7.1
+ollama>=0.1.0
+python-dotenv>=1.0.0
+numpy>=1.26.0  # Required by pandas, matplotlib, and plotly 

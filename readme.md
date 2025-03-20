@@ -1,73 +1,106 @@
-# LlavaNetScanner
+# LlavaNetScannerDjango
 
-## Project Overview
+A Django-based web application for scanning and analyzing network files with AI-powered content description.
 
-LlavaNetScanner is an AI-enabled swarm that utilizes multiple agents to analyze various design files (e.g., images, PDFs, DWG/DXF files). The project automates file scanning, generates detailed descriptions based on file content and metadata, and organizes the results into an SQLite database. A web-based interface, built with Streamlit, allows you to view, filter, and manage the scanned data interactively.
+## Overview
 
-## Key Features
+LlavaNetScannerDjango is a modern web application that scans directories containing various file types (images, PDFs, CAD files) and uses AI to generate descriptions of file contents. It's designed to help organize and search through large collections of technical files, particularly in engineering or architectural contexts.
 
-1. **Automated Scanning**: The system automatically scans directories for supported design files.
-2. **File Analysis & Description**: 
-   - **Images**: Analyzed via Llava to generate detailed, concise, or creative descriptions.
-   - **PDFs**: Processed by Llama3 (when text is extractable) or converted and analyzed via Llava.
-   - **CAD Files**: DWG/DXF file names are parsed for basic description, with plans for future in-depth analysis.
-3. **Metadata Management**: Extracts and manages metadata including file paths, contractors, projects, file sizes, and timestamps.
-4. **SQLite Database Integration**: Stores all scan results directly in an SQLite database (`scanner_results.db`), providing real-time updates and persistent storage.
-5. **Interactive Streamlit Interface**: View database contents, apply filters, visualize data distributions, and initiate new directory scans via an intuitive web UI.
-6. **Additional Utilities**:
-   - **File Storage Analysis**: Use the netgrapher tool to analyze storage usage by file type.
+## Features
 
-## Components
+- **Directory Scanning**: Scan directories recursively to find relevant files
+- **AI-Powered Description**: Uses Ollama with the Llava model to automatically generate descriptions of images
+- **Basic descriptions for design files and PDFs**: Provides information about file properties
+- **Customizable Description Depth**: Choose between detailed, concise, or creative descriptions
+- **Filtering and Search**: Filter results by contractor, project, or file type
+- **Data Visualization**: View statistics about scanned files with interactive charts
+- **Export to CSV**: Export scan results for further analysis
+- **Open File Locations**: Directly open file locations from the interface
 
-- **app.py**: The main Streamlit application that provides an interactive UI to view the database, visualize statistics, and scan new directories.
-- **NetScanner.py**: Handles file scanning and processing—delegating tasks based on file type.
-- **image_describer.py**: Generates image descriptions using Llava.
-- **design_describer.py**: Provides basic descriptions for CAD files (.dwg, .dxf) based on file name cues.
-- **pdf_describer.py**: Processes and describes PDF files.
-- **database.py**: Manages the SQLite database that stores scan results in real-time.
-- **reset.py**: Utility to reset the database if needed.
-- **view_db.py**: Simple utility to view database contents outside of the Streamlit interface.
-- **netgrapher.py**: Analyzes a directory's file distribution and visualizes storage usage with a pie chart.
-- **LICENSE**: GNU General Public License.
+## Requirements
+
+- Python 3.8+
+- Django 5.1+
+- Pandas
+- Plotly
+- Matplotlib
+- Numpy
+- Ollama with Llava model
+- Python-dotenv
 
 ## Installation
 
-1. **Clone the Repository**:
-   ```bash
-   git clone <repository_url>
-   cd LlavaNetScanner
-   ```
+1. Clone the repository:
+```
+git clone <repository-url>
+cd NetworkScanner/DjangoRework
+```
 
-2. **Install Dependencies**:  
-   Ensure you have Python 3.7+ installed, then run:
-   ```bash
-   pip install -r requirements.txt
-   ```
+2. Create and activate a virtual environment:
+```
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
-3. **Set Up Models**:
-   - Install Ollama: `pip install ollama`
-   - Ensure Llava and Llama3 models are available by running:
-     ```bash
-     ollama run llava
-     ollama run llama3
-     ```
+3. Install dependencies:
+```
+pip install -r LlavaNetScannerDjango/requirements.txt
+```
+
+4. Install and set up Ollama locally:
+   - Download from [Ollama.ai](https://ollama.ai)
+   - Install Llava model: `ollama pull llava`
+
+5. Navigate to the project directory:
+```
+cd LlavaNetScannerDjango
+```
+
+6. Apply database migrations:
+```
+python manage.py migrate
+```
+
+7. Run the development server:
+```
+python manage.py runserver
+```
+
+8. Access the application at http://127.0.0.1:8000/
 
 ## Usage
 
-### Running the Interactive Web Interface
+1. **Start a New Scan**:
+   - Go to the "Scan" tab
+   - Enter a directory path
+   - Select a description mode (detailed, concise, creative)
+   - Choose a cutoff date for file processing
+   - Click "Start Scan"
 
-The primary interface is built with Streamlit. To start the application, run:
+2. **View Results**:
+   - The "Database" tab shows all scanned files
+   - Use the search and filter options to narrow down results
+   - Click on file rows to see more details
 
-```bash
-streamlit run app.py --server.port 8502 --server.address localhost
-```
+3. **Export Data**:
+   - Use the "Export to CSV" button to download results
+   - Filtered results will be included in the export
 
-This will launch the web interface where you can:
-- View all scanned files in the database
-- Filter results by contractor, project, or file type
-- Visualize data distribution with interactive charts
-- Scan new directories and add results directly to the database
-- Open file locations directly from the interface
+4. **View Statistics**:
+   - The "Dashboard" tab shows file statistics
+   - View breakdowns by file type and contractor
 
-All scan results are stored in the SQLite database (`scanner_results.db`) and are immediately available in the interface without requiring any manual data migration or checkpointing.
+## Troubleshooting
 
+- If scanning doesn't work properly, test the Ollama service using the "Test Ollama Service" button
+- Ensure the Llava model is installed in Ollama
+- Check that the directories you're scanning exist and are accessible
+- Look for error messages in the application logs
+
+## License
+
+[Your License Information]
+
+## Credits
+
+Developed by [Your Name/Organization] 
